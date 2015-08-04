@@ -1,3 +1,14 @@
+# Fork notes:
+
+This fork adds new plotting types to the aegisub subtitle editor.
+
+Build notes:
+- You need to build ffms2 from source. ffms2 needs the packages: apt-get install libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+- After building ffms2, install the following packages for aegisub: apt-get install libboost-all-dev freeglut3 gettext intltool pkg-config xserver-xorg-dev freeglut3-dev libfreetype6 libfreetype6-dev libfontconfig libfontconfig-dev libass5 libass-dev libwxgtk3.0-0 libwxgtk3.0-dev
+- Run ./autogen.sh and ./configure (optionally with '--enabled-debug')
+- I had to manually add 'lpthread' to  LIBS in Makefile.inc.
+- Then make -j, then make install
+
 # Aegisub
 
 For binaries and general information [see the homepage](http://www.aegisub.org).
