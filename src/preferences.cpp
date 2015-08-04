@@ -92,7 +92,7 @@ void General_DefaultStyles(wxTreebook *book, Preferences *parent) {
 	instructions->Wrap(400);
 	staticbox->Add(instructions, 0, wxALL, 5);
 	staticbox->AddSpacer(16);
-	
+
 	auto general = new wxFlexGridSizer(2, 5, 5);
 	general->AddGrowableCol(0, 1);
 	staticbox->Add(general, 1, wxEXPAND, 5);
@@ -269,6 +269,7 @@ void Interface_Colours(wxTreebook *book, Preferences *parent) {
 	wxArrayString schemes = to_wx(OPT_GET("Audio/Colour Schemes")->GetListString());
 	p->OptionChoice(color_schemes, _("Spectrum"), schemes, "Colour/Audio Display/Spectrum");
 	p->OptionChoice(color_schemes, _("Waveform"), schemes, "Colour/Audio Display/Waveform");
+	p->OptionChoice(color_schemes, _("Waveform"), schemes, "Colour/Audio Display/Separate_Waveform");
 
 	auto grid = p->PageSizer(_("Subtitle Grid"));
 	p->OptionAdd(grid, _("Standard foreground"), "Colour/Subtitle Grid/Standard");

@@ -45,17 +45,27 @@ enum {
 	Waveform_Continuous
 };
 
-AudioWaveformRenderer::AudioWaveformRenderer(std::string const& color_scheme_name)
+AudioWaveformRenderer::AudioWaveformRenderer(std::string const& color_scheme_name, bool separate_channels)
 : render_averages(OPT_GET("Audio/Display/Waveform Style")->GetInt() == Waveform_MaxAvg)
 {
 	colors.reserve(AudioStyle_MAX);
 	for (int i = 0; i < AudioStyle_MAX; ++i)
 		colors.emplace_back(6, color_scheme_name, i);
+
+  this->separate_channels = separate_channels;
 }
 
 AudioWaveformRenderer::~AudioWaveformRenderer() { }
 
 void AudioWaveformRenderer::Render(wxBitmap &bmp, int start, AudioRenderingStyle style)
+{
+  if (separate_channels)
+    RenderSeparate(bmp, start, style);
+  else
+    RenderSingle(bmp, start, style);
+}
+
+void AudioWaveformRenderer::RenderSingle(wxBitmap &bmp, int start, AudioRenderingStyle style)
 {
 	wxMemoryDC dc(bmp);
 	wxRect rect(wxPoint(0, 0), bmp.GetSize());
@@ -63,7 +73,7 @@ void AudioWaveformRenderer::Render(wxBitmap &bmp, int start, AudioRenderingStyle
 
 	const AudioColorScheme *pal = &colors[style];
 
-	double pixel_samples = pixel_ms * provider->GetSampleRate() / 1000.0;
+	double samplesPerPixel = pixel_ms * provider->GetSampleRate() / 1000.0;
 
 	// Fill the background
 	dc.SetBrush(wxBrush(pal->get(0.0f)));
@@ -74,27 +84,28 @@ void AudioWaveformRenderer::Render(wxBitmap &bmp, int start, AudioRenderingStyle
 	if (!audio_buffer)
 	{
 		// Buffer for one pixel strip of audio
-		size_t buffer_needed = pixel_samples * provider->GetChannels() * provider->GetBytesPerSample();
+		size_t buffer_needed = samplesPerPixel * provider->GetChannels() * provider->GetBytesPerSample();
 		audio_buffer.reset(new char[buffer_needed]);
 	}
 
-	double cur_sample = start * pixel_samples;
+	double cur_sample = start * samplesPerPixel;
 
 	assert(provider->GetBytesPerSample() == 2);
-	assert(provider->GetChannels() == 1);
+  // TODO: fix this properly
+	//assert(provider->GetChannels() == 1);
 
 	wxPen pen_peaks(wxPen(pal->get(0.4f)));
 	wxPen pen_avgs(wxPen(pal->get(0.7f)));
 
 	for (int x = 0; x < rect.width; ++x)
 	{
-		provider->GetAudio(audio_buffer.get(), (int64_t)cur_sample, (int64_t)pixel_samples);
-		cur_sample += pixel_samples;
+		provider->GetAudio(audio_buffer.get(), (int64_t)cur_sample, (int64_t) samplesPerPixel);
+		cur_sample += samplesPerPixel;
 
 		int peak_min = 0, peak_max = 0;
 		int64_t avg_min_accum = 0, avg_max_accum = 0;
 		auto aud = reinterpret_cast<const int16_t *>(audio_buffer.get());
-		for (int si = pixel_samples; si > 0; --si, ++aud)
+		for (int si = samplesPerPixel; si > 0; --si, ++aud)
 		{
 			if (*aud > 0)
 			{
@@ -111,8 +122,8 @@ void AudioWaveformRenderer::Render(wxBitmap &bmp, int start, AudioRenderingStyle
 		// midpoint is half height
 		peak_min = std::max((int)(peak_min * amplitude_scale * midpoint) / 0x8000, -midpoint);
 		peak_max = std::min((int)(peak_max * amplitude_scale * midpoint) / 0x8000, midpoint);
-		int avg_min = std::max((int)(avg_min_accum * amplitude_scale * midpoint / pixel_samples) / 0x8000, -midpoint);
-		int avg_max = std::min((int)(avg_max_accum * amplitude_scale * midpoint / pixel_samples) / 0x8000, midpoint);
+		int avg_min = std::max((int)(avg_min_accum * amplitude_scale * midpoint / samplesPerPixel) / 0x8000, -midpoint);
+		int avg_max = std::min((int)(avg_max_accum * amplitude_scale * midpoint / samplesPerPixel) / 0x8000, midpoint);
 
 		dc.SetPen(pen_peaks);
 		dc.DrawLine(x, midpoint - peak_max, x, midpoint - peak_min);
@@ -129,6 +140,104 @@ void AudioWaveformRenderer::Render(wxBitmap &bmp, int start, AudioRenderingStyle
 		dc.SetPen(pen_peaks);
 
 	dc.DrawLine(0, midpoint, rect.width, midpoint);
+}
+
+void AudioWaveformRenderer::RenderSeparate(wxBitmap &bmp, int start, AudioRenderingStyle style)
+{
+	wxMemoryDC dc(bmp);
+	wxRect rect(wxPoint(0, 0), bmp.GetSize());
+
+	const AudioColorScheme *pal = &colors[style];
+
+	double samplesPerPixel = pixel_ms * provider->GetSampleRate() / 1000.0;
+
+	// Fill the background
+	dc.SetBrush(wxBrush(pal->get(0.0f)));
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.DrawRectangle(rect);
+
+
+	// Make sure we've got a buffer to fill with audio data
+	if (!audio_buffer)
+	{
+		// Buffer for one pixel strip of audio
+		size_t buffer_needed = samplesPerPixel * provider->GetChannels() * provider->GetBytesPerSample();
+		audio_buffer.reset(new char[buffer_needed]);
+	}
+
+
+	double cur_sample = start * samplesPerPixel;
+
+	assert(provider->GetBytesPerSample() == 2);
+	//assert(provider->GetChannels() == 1);
+	int channels = provider->GetChannels();
+
+	wxPen pen_peaks(wxPen(pal->get(0.4f)));
+	wxPen pen_avgs(wxPen(pal->get(0.7f)));
+
+	for (int x = 0; x < rect.width; ++x)
+	{
+		provider->GetAudio(audio_buffer.get(), (int64_t)cur_sample, (int64_t)samplesPerPixel);
+		cur_sample += samplesPerPixel;
+
+    for (int c = 0; c < channels; ++c)
+    {
+      // c * height / channels + height / channels / 2 = h / channels * (c + 0.5)
+      //int midpoint = rect.height / 2;
+      int midpoint = (int)(rect.height / (float) channels * (c + 0.5f));
+
+      int peak_min = 0, peak_max = 0;
+      int64_t avg_min_accum = 0, avg_max_accum = 0;
+      //const int16_t *aud = (const int16_t *)audio_buffer;
+      auto aud = reinterpret_cast<const int16_t *>(audio_buffer.get());
+      for (int si = samplesPerPixel; si > 0; --si, aud += channels)
+      {
+        if (*aud > 0)
+        {
+          peak_max = std::max(peak_max, (int)*(aud+c));
+          avg_max_accum += *aud;
+        }
+        else
+        {
+          peak_min = std::min(peak_min, (int)*(aud+c));
+          avg_min_accum += *aud;
+        }
+      }
+
+      // midpoint is half height
+      peak_min = std::max((int)(peak_min * amplitude_scale / channels * midpoint) / 0x8000, -midpoint);
+      peak_max = std::min((int)(peak_max * amplitude_scale / channels * midpoint) / 0x8000, midpoint);
+      int avg_min = std::max((int)(avg_min_accum * amplitude_scale / channels * midpoint / samplesPerPixel) / 0x8000, -midpoint);
+      int avg_max = std::min((int)(avg_max_accum * amplitude_scale / channels * midpoint / samplesPerPixel) / 0x8000, midpoint);
+
+      dc.SetPen(pen_peaks);
+      dc.DrawLine(x, midpoint - peak_max, x, midpoint - peak_min);
+      if (render_averages) {
+        dc.SetPen(pen_avgs);
+        dc.DrawLine(x, midpoint - avg_max, x, midpoint - avg_min);
+      }
+    }
+	}
+
+	// Horizontal zero-point line
+	if (render_averages)
+		dc.SetPen(wxPen(pal->get(1.0f)));
+	else
+		dc.SetPen(pen_peaks);
+
+  for (int c = 0; c < channels; ++c)
+  {
+    int midpoint = (int)(rect.height / (float) channels * (c + 0.5f));
+    dc.DrawLine(0, midpoint, rect.width, midpoint);
+  }
+
+	dc.SetPen(wxPen(pal->get(0.5f)));
+  for (int c = 0; c < channels - 1; ++c)
+  {
+    // draw channel separators
+    int blockWidth = (int)(rect.height / (float) channels) * c;
+    dc.DrawLine(0, blockWidth, rect.width, blockWidth);
+  }
 }
 
 void AudioWaveformRenderer::RenderBlank(wxDC &dc, const wxRect &rect, AudioRenderingStyle style)

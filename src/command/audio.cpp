@@ -136,11 +136,11 @@ struct audio_view_spectrum final : public Command {
 	CMD_TYPE(COMMAND_RADIO)
 
 	bool IsActive(const agi::Context *) override {
-		return OPT_GET("Audio/Spectrum")->GetBool();
+		return OPT_GET("Audio/DisplayType")->GetString() == "spectrum";
 	}
 
 	void operator()(agi::Context *) override {
-		OPT_SET("Audio/Spectrum")->SetBool(true);
+		OPT_SET("Audio/Spectrum")->SetString("spectrum");
 	}
 };
 
@@ -152,11 +152,27 @@ struct audio_view_waveform final : public Command {
 	CMD_TYPE(COMMAND_RADIO)
 
 	bool IsActive(const agi::Context *) override {
-		return !OPT_GET("Audio/Spectrum")->GetBool();
+		return OPT_GET("Audio/DisplayType")->GetString() == "waveform";
 	}
 
 	void operator()(agi::Context *) override {
-		OPT_SET("Audio/Spectrum")->SetBool(false);
+		OPT_SET("Audio/DisplayType")->SetString("waveform");
+	}
+};
+
+struct audio_view_separate_waveform final : public Command {
+	CMD_NAME("audio/view/separate_waveform")
+	STR_MENU("S&eparate Waveform Display")
+	STR_DISP("Separate Waveform Display")
+	STR_HELP("Display audio as a linear amplitude graph")
+	CMD_TYPE(COMMAND_RADIO)
+
+	bool IsActive(const agi::Context *) override {
+		return OPT_GET("Audio/DisplayType")->GetString() == "separate_waveform";
+	}
+
+	void operator()(agi::Context *) override {
+		OPT_SET("Audio/DisplayType")->SetString("separate_waveform");
 	}
 };
 
@@ -566,5 +582,6 @@ namespace cmd {
 		reg(agi::make_unique<audio_vertical_link>());
 		reg(agi::make_unique<audio_view_spectrum>());
 		reg(agi::make_unique<audio_view_waveform>());
+		reg(agi::make_unique<audio_view_separate_waveform>());
 	}
 }

@@ -34,6 +34,7 @@ protected:
 	int sample_rate = 0;
 	int bytes_per_sample = 0;
 	bool float_samples = false;
+  int num_channels = 1;
 
 	virtual void FillBuffer(void *buf, int64_t start, int64_t count) const = 0;
 

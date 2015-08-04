@@ -46,13 +46,21 @@ class AudioWaveformRenderer final : public AudioRendererBitmapProvider {
 	/// Whether to render max+avg or just max
 	bool render_averages;
 
+  /// Whether to display each channel separately or in a single plot
+  bool separate_channels;
+
 	void OnSetProvider() override { audio_buffer.reset(); }
+
 	void OnSetMillisecondsPerPixel() override { audio_buffer.reset(); }
+
+	void RenderSingle(wxBitmap &bmp, int start, AudioRenderingStyle style);
+
+	void RenderSeparate(wxBitmap &bmp, int start, AudioRenderingStyle style);
 
 public:
 	/// @brief Constructor
 	/// @param color_scheme_name Name of the color scheme to use
-	AudioWaveformRenderer(std::string const& color_scheme_name);
+	AudioWaveformRenderer(std::string const& color_scheme_name, bool separate_channels = false);
 
 	/// @brief Destructor
 	~AudioWaveformRenderer();

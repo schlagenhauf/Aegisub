@@ -740,7 +740,7 @@ void AudioDisplay::ReloadRenderingSettings()
 {
 	std::string colour_scheme_name;
 
-	if (OPT_GET("Audio/Spectrum")->GetBool())
+	if (OPT_GET("Audio/DisplayType")->GetString() == "spectrum")
 	{
 		colour_scheme_name = OPT_GET("Colour/Audio Display/Spectrum")->GetString();
 		auto audio_spectrum_renderer = agi::make_unique<AudioSpectrumRenderer>(colour_scheme_name);
@@ -762,11 +762,16 @@ void AudioDisplay::ReloadRenderingSettings()
 
 		audio_renderer_provider = std::move(audio_spectrum_renderer);
 	}
-	else
+	else if (OPT_GET("Audio/DisplayType")->GetString() == "waveform")
 	{
 		colour_scheme_name = OPT_GET("Colour/Audio Display/Waveform")->GetString();
 		audio_renderer_provider = agi::make_unique<AudioWaveformRenderer>(colour_scheme_name);
 	}
+  else
+  {
+		colour_scheme_name = OPT_GET("Colour/Audio Display/Separate_Waveform")->GetString();
+		audio_renderer_provider = agi::make_unique<AudioWaveformRenderer>(colour_scheme_name);
+  }
 
 	audio_renderer->SetRenderer(audio_renderer_provider.get());
 	scrollbar->SetColourScheme(colour_scheme_name);

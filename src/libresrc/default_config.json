@@ -78,6 +78,7 @@
 			"Distance" : 10,
 			"Enable" : false
 		},
+		"DisplayType" : "spectrum",
 		"Spectrum" : true,
 		"Start Drag Sensitivity" : 3,
 		"Track Cursor" : {
@@ -108,7 +109,8 @@
 			"Seconds Line" : "rgb(0,100,255)",
 			"Spectrum" : "Icy Blue",
 			"Syllable Boundaries" : "rgb(255,255,0)",
-			"Waveform" : "Green"
+			"Waveform" : "Green",
+			"Separate_Waveform" : "Green"
 		},
 		"Schemes" : {
 			"Green" : {

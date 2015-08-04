@@ -163,10 +163,13 @@ public:
 		for (; count > 0; --count) {
 			auto src_index = (start + count - 1) / 2 - start / 2;
 			auto i = count - 1;
-			if ((start + i) & 1)
-				dst[i] = (int16_t)(((int32_t)src[src_index] + src[src_index + 1]) / 2);
-			else
-				dst[i] = src[src_index];
+      for (int c = 0; c < num_channels; ++c)
+      {
+        if ((start + i) & 1)
+          dst[i + c] = (int16_t)(((int32_t)src[src_index + c] + src[src_index + c + 1]) / 2);
+        else
+          dst[i] = src[src_index];
+      }
 		}
 	}
 };
@@ -187,6 +190,7 @@ std::unique_ptr<AudioProvider> CreateConvertAudioProvider(std::unique_ptr<AudioP
 		provider = agi::make_unique<BitdepthConvertAudioProvider<int16_t>>(std::move(provider));
 	}
 
+  /*
 	// We currently only support mono audio
 	if (provider->GetChannels() != 1) {
 		LOG_D("audio_provider") << "Downmixing to mono from " << provider->GetChannels() << " channels";
@@ -198,6 +202,7 @@ std::unique_ptr<AudioProvider> CreateConvertAudioProvider(std::unique_ptr<AudioP
 		LOG_D("audio_provider") << "Doubling sample rate";
 		provider = agi::make_unique<SampleDoublingAudioProvider>(std::move(provider));
 	}
+  */
 
 	return provider;
 }
