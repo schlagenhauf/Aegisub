@@ -742,6 +742,7 @@ void AudioDisplay::ReloadRenderingSettings()
 
 	if (OPT_GET("Audio/DisplayType")->GetString() == "spectrum")
 	{
+    printf("Spectrum renderer\n");
 		colour_scheme_name = OPT_GET("Colour/Audio Display/Spectrum")->GetString();
 		auto audio_spectrum_renderer = agi::make_unique<AudioSpectrumRenderer>(colour_scheme_name);
 
@@ -764,13 +765,15 @@ void AudioDisplay::ReloadRenderingSettings()
 	}
 	else if (OPT_GET("Audio/DisplayType")->GetString() == "waveform")
 	{
+    printf("Waveform renderer\n");
 		colour_scheme_name = OPT_GET("Colour/Audio Display/Waveform")->GetString();
 		audio_renderer_provider = agi::make_unique<AudioWaveformRenderer>(colour_scheme_name);
 	}
   else
   {
+    printf("Separate Waveform renderer\n");
 		colour_scheme_name = OPT_GET("Colour/Audio Display/Separate_Waveform")->GetString();
-		audio_renderer_provider = agi::make_unique<AudioWaveformRenderer>(colour_scheme_name);
+		audio_renderer_provider = agi::make_unique<AudioWaveformRenderer>(colour_scheme_name, true);
   }
 
 	audio_renderer->SetRenderer(audio_renderer_provider.get());

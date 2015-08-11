@@ -140,7 +140,7 @@ struct audio_view_spectrum final : public Command {
 	}
 
 	void operator()(agi::Context *) override {
-		OPT_SET("Audio/Spectrum")->SetString("spectrum");
+		OPT_SET("Audio/DisplayType")->SetString("spectrum");
 	}
 };
 
@@ -162,9 +162,9 @@ struct audio_view_waveform final : public Command {
 
 struct audio_view_separate_waveform final : public Command {
 	CMD_NAME("audio/view/separate_waveform")
-	STR_MENU("S&eparate Waveform Display")
+	STR_MENU("Separate Waveform Display")
 	STR_DISP("Separate Waveform Display")
-	STR_HELP("Display audio as a linear amplitude graph")
+	STR_HELP("Display audio as a linear amplitude graph separated by channel")
 	CMD_TYPE(COMMAND_RADIO)
 
 	bool IsActive(const agi::Context *) override {

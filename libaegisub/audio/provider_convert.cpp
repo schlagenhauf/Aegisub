@@ -196,13 +196,13 @@ std::unique_ptr<AudioProvider> CreateConvertAudioProvider(std::unique_ptr<AudioP
 		LOG_D("audio_provider") << "Downmixing to mono from " << provider->GetChannels() << " channels";
 		provider = agi::make_unique<DownmixAudioProvider>(std::move(provider));
 	}
+  */
 
 	// Some players don't like low sample rate audio
 	while (provider->GetSampleRate() < 32000) {
 		LOG_D("audio_provider") << "Doubling sample rate";
 		provider = agi::make_unique<SampleDoublingAudioProvider>(std::move(provider));
 	}
-  */
 
 	return provider;
 }

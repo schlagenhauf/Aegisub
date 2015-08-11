@@ -88,34 +88,38 @@ void AudioWaveformRenderer::RenderSingle(wxBitmap &bmp, int start, AudioRenderin
 		audio_buffer.reset(new char[buffer_needed]);
 	}
 
-	double cur_sample = start * samplesPerPixel;
+	double cur_sample_cursor = start * samplesPerPixel;
 
 	assert(provider->GetBytesPerSample() == 2);
-  // TODO: fix this properly
-	//assert(provider->GetChannels() == 1);
 
 	wxPen pen_peaks(wxPen(pal->get(0.4f)));
 	wxPen pen_avgs(wxPen(pal->get(0.7f)));
 
 	for (int x = 0; x < rect.width; ++x)
 	{
-		provider->GetAudio(audio_buffer.get(), (int64_t)cur_sample, (int64_t) samplesPerPixel);
-		cur_sample += samplesPerPixel;
+		provider->GetAudio(audio_buffer.get(), (int64_t)cur_sample_cursor, (int64_t) samplesPerPixel);
+		cur_sample_cursor += samplesPerPixel;
 
 		int peak_min = 0, peak_max = 0;
 		int64_t avg_min_accum = 0, avg_max_accum = 0;
 		auto aud = reinterpret_cast<const int16_t *>(audio_buffer.get());
-		for (int si = samplesPerPixel; si > 0; --si, ++aud)
+		for (int si = samplesPerPixel; si > 0; --si, aud += provider->GetChannels())
 		{
-			if (*aud > 0)
+      // calculate mean over all channels (this replaces the downmix audio provider)
+      int curSample = 0;
+      for (int nc = 0; nc < provider->GetChannels(); ++nc)
+        curSample += (int)*(aud+nc);
+      curSample /= provider->GetChannels();
+
+			if (curSample > 0)
 			{
-				peak_max = std::max(peak_max, (int)*aud);
-				avg_max_accum += *aud;
+				peak_max = std::max(peak_max, curSample);
+				avg_max_accum += curSample;
 			}
 			else
 			{
-				peak_min = std::min(peak_min, (int)*aud);
-				avg_min_accum += *aud;
+				peak_min = std::min(peak_min, curSample);
+				avg_min_accum += curSample;
 			}
 		}
 
@@ -166,7 +170,7 @@ void AudioWaveformRenderer::RenderSeparate(wxBitmap &bmp, int start, AudioRender
 	}
 
 
-	double cur_sample = start * samplesPerPixel;
+	double cur_sample_cursor = start * samplesPerPixel;
 
 	assert(provider->GetBytesPerSample() == 2);
 	//assert(provider->GetChannels() == 1);
@@ -177,8 +181,8 @@ void AudioWaveformRenderer::RenderSeparate(wxBitmap &bmp, int start, AudioRender
 
 	for (int x = 0; x < rect.width; ++x)
 	{
-		provider->GetAudio(audio_buffer.get(), (int64_t)cur_sample, (int64_t)samplesPerPixel);
-		cur_sample += samplesPerPixel;
+		provider->GetAudio(audio_buffer.get(), (int64_t)cur_sample_cursor, (int64_t)samplesPerPixel);
+		cur_sample_cursor += samplesPerPixel;
 
     for (int c = 0; c < channels; ++c)
     {
@@ -188,19 +192,18 @@ void AudioWaveformRenderer::RenderSeparate(wxBitmap &bmp, int start, AudioRender
 
       int peak_min = 0, peak_max = 0;
       int64_t avg_min_accum = 0, avg_max_accum = 0;
-      //const int16_t *aud = (const int16_t *)audio_buffer;
       auto aud = reinterpret_cast<const int16_t *>(audio_buffer.get());
       for (int si = samplesPerPixel; si > 0; --si, aud += channels)
       {
-        if (*aud > 0)
+        if (*(aud+c) > 0)
         {
           peak_max = std::max(peak_max, (int)*(aud+c));
-          avg_max_accum += *aud;
+          avg_max_accum += *(aud+c);
         }
         else
         {
           peak_min = std::min(peak_min, (int)*(aud+c));
-          avg_min_accum += *aud;
+          avg_min_accum += *(aud+c);
         }
       }
 
