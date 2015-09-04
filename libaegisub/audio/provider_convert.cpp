@@ -136,7 +136,6 @@ public:
 };
 
 /// Sample doubler with linear interpolation for the samples provider
-/// Requires 16-bit mono input
 class SampleDoublingAudioProvider final : public AudioProviderWrapper {
 public:
 	SampleDoublingAudioProvider(std::unique_ptr<AudioProvider> src) : AudioProviderWrapper(std::move(src)) {
@@ -148,27 +147,27 @@ public:
 	void FillBuffer(void *buf, int64_t start, int64_t count) const override {
 		int16_t *src, *dst = static_cast<int16_t *>(buf);
 
-		// We need to always get at least two samples to be able to interpolate
-		int16_t srcbuf[2];
-		if (count == 1) {
-			source->GetAudio(srcbuf, start / 2, 2);
-			src = srcbuf;
-		}
-		else {
-			source->GetAudio(buf, start / 2, (start + count) / 2 - start / 2 + 1);
-			src = dst;
-		}
+    int num_channels = GetChannels();
+
+    if (count < 2) // guarantee that there are enough samples to interpolate in between
+      count = 2;
+
+   	source->GetAudio(buf, start / 2, (start + count) / 2 - start / 2 + 1);
+		src = dst;
+
+    //printf("Count: %d, start %d\n", count, start);
 
 		// walking backwards so that the conversion can be done in place
 		for (; count > 0; --count) {
-			auto src_index = (start + count - 1) / 2 - start / 2;
-			auto i = count - 1;
+			auto src_index = ((start + count - 1) / 2 - start / 2) * num_channels;
+			auto dst_index = (count - 1) * num_channels;
+
       for (int c = 0; c < num_channels; ++c)
       {
-        if ((start + i) & 1)
-          dst[i + c] = (int16_t)(((int32_t)src[src_index + c] + src[src_index + c + 1]) / 2);
+        if ((start + dst_index) & 1)
+          dst[dst_index + c] = (int16_t)(((int32_t)src[src_index + c] + src[src_index + c + 1]) / 2);
         else
-          dst[i] = src[src_index];
+          dst[dst_index + c] = src[src_index + c];
       }
 		}
 	}
