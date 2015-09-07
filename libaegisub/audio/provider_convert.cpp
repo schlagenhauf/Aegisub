@@ -149,13 +149,32 @@ public:
 
     int num_channels = GetChannels();
 
+		int16_t* srcbuf = NULL;
+		if (count == 1) {
+		  srcbuf = new int16_t[2 * num_channels];
+			source->GetAudio(srcbuf, start / 2, 2);
+			src = srcbuf;
+		}
+		else {
+			source->GetAudio(buf, start / 2, (start + count) / 2 - start / 2 + 1);
+			src = dst;
+		}
+
+    /*
     if (count < 2) // guarantee that there are enough samples to interpolate in between
       count = 2;
 
    	source->GetAudio(buf, start / 2, (start + count) / 2 - start / 2 + 1);
 		src = dst;
+    */
 
-    //printf("Count: %d, start %d\n", count, start);
+
+    /*
+    auto src_index = ((start + count - 1) / 2 - start / 2) * num_channels;
+    auto dst_index = (count - 1) * num_channels;
+    printf("Size source buf: %d, size dest buf: %d, src_index: %d, dst_index: %d, num_channels: %d\n", num_samples / 2, num_samples, src_index, dst_index, num_channels);
+    fflush(stdout);
+    */
 
 		// walking backwards so that the conversion can be done in place
 		for (; count > 0; --count) {
@@ -165,11 +184,14 @@ public:
       for (int c = 0; c < num_channels; ++c)
       {
         if ((start + dst_index) & 1)
-          dst[dst_index + c] = (int16_t)(((int32_t)src[src_index + c] + src[src_index + c + 1]) / 2);
+          dst[dst_index + c] = (int16_t)(((int32_t)src[src_index + c] + src[src_index + c + num_channels]) / 2);
         else
           dst[dst_index + c] = src[src_index + c];
       }
 		}
+
+    if (srcbuf != NULL)
+      delete[] srcbuf;
 	}
 };
 }
@@ -197,11 +219,13 @@ std::unique_ptr<AudioProvider> CreateConvertAudioProvider(std::unique_ptr<AudioP
 	}
   */
 
+  /*
 	// Some players don't like low sample rate audio
 	while (provider->GetSampleRate() < 32000) {
 		LOG_D("audio_provider") << "Doubling sample rate";
 		provider = agi::make_unique<SampleDoublingAudioProvider>(std::move(provider));
 	}
+  */
 
 	return provider;
 }

@@ -107,9 +107,12 @@ void AudioWaveformRenderer::RenderSingle(wxBitmap &bmp, int start, AudioRenderin
 		{
       // calculate mean over all channels (this replaces the downmix audio provider)
       int curSample = 0;
+      /*
       for (int nc = 0; nc < provider->GetChannels(); ++nc)
-        curSample += (int)*(aud+nc);
+        curSample += static_cast<int>(*(aud+nc));
       curSample /= provider->GetChannels();
+      */
+      curSample = *aud;
 
 			if (curSample > 0)
 			{
@@ -130,13 +133,18 @@ void AudioWaveformRenderer::RenderSingle(wxBitmap &bmp, int start, AudioRenderin
 		int avg_max = std::min((int)(avg_max_accum * amplitude_scale * midpoint / samplesPerPixel) / 0x8000, midpoint);
 
 		dc.SetPen(pen_peaks);
-		dc.DrawLine(x, midpoint - peak_max, x, midpoint - peak_min);
+		dc.DrawPoint(x, midpoint - peak_max);
+		dc.DrawPoint(x, midpoint - peak_min);
+		//dc.DrawLine(x, midpoint - peak_max, x, midpoint - peak_min);
+    /*
 		if (render_averages) {
 			dc.SetPen(pen_avgs);
 			dc.DrawLine(x, midpoint - avg_max, x, midpoint - avg_min);
 		}
+    */
 	}
 
+  /*
 	// Horizontal zero-point line
 	if (render_averages)
 		dc.SetPen(wxPen(pal->get(1.0f)));
@@ -144,6 +152,7 @@ void AudioWaveformRenderer::RenderSingle(wxBitmap &bmp, int start, AudioRenderin
 		dc.SetPen(pen_peaks);
 
 	dc.DrawLine(0, midpoint, rect.width, midpoint);
+  */
 }
 
 void AudioWaveformRenderer::RenderSeparate(wxBitmap &bmp, int start, AudioRenderingStyle style)
